@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fond de fenetre affiche avant le premier rendu, a la place de l'ecran noir. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:drawable="@color/logo_background" />
+
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/app_logo" />
+    </item>
+
+</layer-list>

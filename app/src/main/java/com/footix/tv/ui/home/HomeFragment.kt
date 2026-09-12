@@ -2,6 +2,7 @@ package com.footix.tv.ui.home
 
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.viewModels
@@ -41,10 +42,12 @@ class HomeFragment : BrowseSupportFragment() {
     )
 
     private var renderedSections: List<CompetitionSection>? = null
+    private var loadingLogo: View? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupBrowse()
+        setupLoadingLogo(view as ViewGroup)
         adapter = rowsAdapter
         onItemViewClickedListener = OnItemViewClickedListener { _, item, _, _ -> onCardClicked(item) }
         observeViewModel()
@@ -58,12 +61,23 @@ class HomeFragment : BrowseSupportFragment() {
 
     private fun setupBrowse() {
         val context = requireContext()
-        title = getString(R.string.app_name)
-        badgeDrawable = ContextCompat.getDrawable(context, R.drawable.app_logo)
         headersState = HEADERS_ENABLED
         isHeadersTransitionOnBackEnabled = true
         brandColor = ContextCompat.getColor(context, R.color.brand_dark)
         progressBarManager.setInitialDelay(300L)
+        // Le bandeau de titre n'apparait qu'une fois le catalogue affiche.
+        showBranding(false)
+    }
+
+    /**
+     * Logo battant du demarrage. Il ne sert qu'au chargement du catalogue : la
+     * resolution d'un flux, elle, garde le rond de chargement leanback.
+     */
+    private fun setupLoadingLogo(root: ViewGroup) {
+        loadingLogo = layoutInflater.inflate(R.layout.view_loading_logo, root, false).also {
+            it.visibility = View.GONE
+            root.addView(it)
+        }
     }
 
     private fun observeViewModel() {
@@ -77,22 +91,44 @@ class HomeFragment : BrowseSupportFragment() {
 
     private fun render(state: DataState<List<CompetitionSection>>) {
         when (state) {
-            is DataState.Loading -> progressBarManager.show()
+            is DataState.Loading -> showLoadingLogo(true)
 
             is DataState.Success -> {
-                progressBarManager.hide()
+                showLoadingLogo(false)
                 if (state.data.isEmpty()) {
                     showMessage(getString(R.string.empty_catalog))
                 } else {
                     showSections(state.data)
+                    showBranding(true)
                 }
             }
 
             is DataState.Failure -> {
-                progressBarManager.hide()
+                showLoadingLogo(false)
                 showMessage(getString(state.error.messageRes()), state.detail)
             }
         }
+    }
+
+    private fun showLoadingLogo(visible: Boolean) {
+        loadingLogo?.visibility = if (visible) View.VISIBLE else View.GONE
+        if (visible) showBranding(false)
+    }
+
+    /**
+     * Logo en haut a droite : visible seulement quand le catalogue est affiche.
+     * Le titre doit etre vide en meme temps que le badge, car leanback affiche
+     * le texte des qu'aucune image de badge n'est fournie, et il reaffiche ce
+     * bandeau de lui-meme au fil du defilement.
+     */
+    private fun showBranding(visible: Boolean) {
+        title = if (visible) getString(R.string.app_name) else null
+        badgeDrawable = if (visible) {
+            ContextCompat.getDrawable(requireContext(), R.drawable.app_logo)
+        } else {
+            null
+        }
+        showTitle(visible)
     }
 
     private fun showSections(sections: List<CompetitionSection>) {
@@ -113,6 +149,7 @@ class HomeFragment : BrowseSupportFragment() {
     }
 
     private fun showMessage(message: String, detail: String = "") {
+        showBranding(false)
         renderedSections = null
         rowsAdapter.clear()
         val rowAdapter = ArrayObjectAdapter(cardPresenters)

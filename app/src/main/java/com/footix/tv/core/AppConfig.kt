@@ -25,6 +25,10 @@ object AppConfig {
     /** Ajoute une premiere rangee regroupant les matchs en direct. */
     const val SHOW_LIVE_ROW = true
 
+    // --- Interface ---------------------------------------------------------
+    /** Duree d'un battement du logo pendant les chargements. */
+    const val LOADING_PULSE_DURATION_MS = 700L
+
     // --- Lecture -----------------------------------------------------------
     /**
      * Tronque l'URL du flux juste apres ".m3u8". A passer a false si le serveur
@@ -32,7 +36,33 @@ object AppConfig {
      */
     const val STRIP_STREAM_QUERY = true
 
+    /**
+     * Demarre plus pres du bord du direct. A repasser a false si l'image se fige
+     * souvent : la marge d'avance qui absorbait les a-coups du reseau se reduit.
+     */
+    const val PLAYER_LOW_LATENCY = true
+
+    /**
+     * Retard vise par rapport au direct, en millisecondes. Ne peut pas descendre
+     * sous la duree d'un segment de la source (4 s environ ici) : le serveur ne
+     * publie un segment qu'une fois ecrit en entier.
+     */
+    const val PLAYER_LIVE_DELAY_MS = 8000
+
+    /**
+     * Retard maximum tolere face au direct. Chaque gel d'image et chaque pause
+     * eloignent la lecture du bord du direct sans jamais la rattraper : passe ce
+     * seuil, le flux est recharge pour repartir au plus pres, au prix d'une a
+     * deux secondes de rechargement. Mettre 0 pour desactiver la surveillance.
+     */
+    const val PLAYER_MAX_DELAY_MS = 12_000L
+
+    /** Frequence de controle du retard accumule. */
+    const val PLAYER_DELAY_CHECK_INTERVAL_MS = 5_000L
+
+    /** Memoire tampon reseau, selon le mode de latence choisi ci-dessus. */
     const val PLAYER_NETWORK_CACHING_MS = 1500
+    const val PLAYER_LOW_LATENCY_CACHING_MS = 1000
     const val PLAYER_MAX_RETRIES = 5
     const val PLAYER_RETRY_DELAY_MS = 3_000L
     const val PLAYER_SEEK_STEP_MS = 10_000L

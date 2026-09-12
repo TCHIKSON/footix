@@ -5,6 +5,12 @@
         <item name="android:windowBackground">@color/background</item>
     </style>
 
+    <!-- Applique au lancement uniquement : l'activite bascule sur Theme.Footix
+         des son onCreate, sinon le logo resterait derriere tout l'ecran. -->
+    <style name="Theme.Footix.Splash" parent="Theme.Footix">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+    </style>
+
     <style name="Theme.Footix.Player" parent="Theme.Leanback">
         <item name="android:windowBackground">@android:color/black</item>
         <item name="android:windowFullscreen">true</item>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand">#F47B20</color>
+    <color name="brand_dark">#1A1207</color>
+    <color name="background">#101014</color>
+    <color name="card_info">#1E1E24</color>
+    <!-- Fond du logo fourni : les cartes sans affiche s'y alignent -->
+    <color name="logo_background">#111111</color>
+    <color name="text_secondary">#B3FFFFFF</color>
+    <color name="live">#E2262C</color>
+</resources>

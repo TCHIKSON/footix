@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Footix</string>
+
+    <string name="live">DIRECT</string>
+    <string name="retry">Appuyez sur OK pour reessayer</string>
+    <string name="empty_catalog">Aucun match de football disponible pour le moment</string>
+
+    <string name="error_network">Connexion impossible, verifiez le reseau</string>
+    <string name="error_timeout">Le serveur ne repond pas</string>
+    <string name="error_server">Le serveur a renvoye une erreur</string>
+    <string name="error_no_source">Aucune source disponible pour ce match</string>
+    <string name="error_unknown">Une erreur est survenue</string>
+
+    <string name="player_error">Lecture impossible</string>
+    <string name="player_retry_hint">Appuyez sur OK pour relancer le flux</string>
+    <string name="player_retrying">Reconnexion %1$d/%2$d</string>
+</resources>

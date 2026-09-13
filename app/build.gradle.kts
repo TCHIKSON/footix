@@ -11,8 +11,8 @@ android {
         applicationId = "com.footix.tv"
         minSdk = 21
         targetSdk = 35
-        versionCode = 12
-        versionName = "2.1"
+        versionCode = 13
+        versionName = "2.2"
 
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a")

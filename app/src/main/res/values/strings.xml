@@ -15,4 +15,5 @@
     <string name="player_error">Lecture impossible</string>
     <string name="player_retry_hint">Appuyez sur OK pour relancer le flux</string>
     <string name="player_retrying">Reconnexion %1$d/%2$d</string>
+    <string name="player_refreshing_link">Recuperation d\'un nouveau lien</string>
 </resources>

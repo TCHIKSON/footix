@@ -12,18 +12,23 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import com.footix.tv.R
 import com.footix.tv.core.AppConfig
+import com.footix.tv.core.Logger
+import com.footix.tv.core.ServiceLocator
 import com.footix.tv.databinding.ActivityPlayerBinding
 import com.footix.tv.domain.displayTitle
 import com.footix.tv.domain.model.Match
 import com.footix.tv.domain.model.PlayableStream
+import kotlinx.coroutines.launch
 
 class PlayerActivity : FragmentActivity(), VlcPlayerController.Listener {
 
     private lateinit var binding: ActivityPlayerBinding
     private var controller: VlcPlayerController? = null
     private var streamUrl: String = ""
+    private var matchSlug: String = ""
 
     private val overlayHandler = Handler(Looper.getMainLooper())
     private val hideOverlayTask = Runnable { binding.overlay.isVisible = false }
@@ -46,7 +51,11 @@ class PlayerActivity : FragmentActivity(), VlcPlayerController.Listener {
         binding.subtitle.text = intent.getStringExtra(EXTRA_SUBTITLE).orEmpty()
         binding.liveBadge.isVisible = intent.getBooleanExtra(EXTRA_LIVE, false)
 
-        controller = VlcPlayerController(this).apply { listener = this@PlayerActivity }
+        matchSlug = intent.getStringExtra(EXTRA_SLUG).orEmpty()
+        controller = VlcPlayerController(this).apply {
+            listener = this@PlayerActivity
+            urlResolver = VlcPlayerController.UrlResolver { onResult -> resolveFreshUrl(onResult) }
+        }
         showOverlay()
     }
 
@@ -92,6 +101,31 @@ class PlayerActivity : FragmentActivity(), VlcPlayerController.Listener {
         binding.status.isVisible = true
         binding.status.text = getString(R.string.player_retrying, attempt, maxAttempts)
         showOverlay(autoHide = false)
+    }
+
+    override fun onResolvingFreshUrl() {
+        binding.buffering.isVisible = true
+        binding.status.isVisible = true
+        binding.status.text = getString(R.string.player_refreshing_link)
+        showOverlay(autoHide = false)
+    }
+
+    /** Rappelle l'API du match pour obtenir l'adresse du flux a jour. */
+    private fun resolveFreshUrl(onResult: (String?) -> Unit) {
+        if (matchSlug.isBlank()) {
+            onResult(null)
+            return
+        }
+        lifecycleScope.launch {
+            val url = try {
+                ServiceLocator.streamRepository.resolve(matchSlug).url
+            } catch (e: Exception) {
+                Logger.w("Impossible de redemander l'URL du flux", e)
+                null
+            }
+            streamUrl = url ?: streamUrl
+            onResult(url)
+        }
     }
 
     override fun onUnrecoverableError() {
@@ -175,6 +209,7 @@ class PlayerActivity : FragmentActivity(), VlcPlayerController.Listener {
 
     companion object {
         private const val EXTRA_URL = "extra_url"
+        private const val EXTRA_SLUG = "extra_slug"
         private const val EXTRA_TITLE = "extra_title"
         private const val EXTRA_SUBTITLE = "extra_subtitle"
         private const val EXTRA_LIVE = "extra_live"
@@ -187,6 +222,7 @@ class PlayerActivity : FragmentActivity(), VlcPlayerController.Listener {
 
             return Intent(context, PlayerActivity::class.java)
                 .putExtra(EXTRA_URL, stream.url)
+                .putExtra(EXTRA_SLUG, match.slug)
                 .putExtra(EXTRA_TITLE, match.displayTitle)
                 .putExtra(EXTRA_SUBTITLE, subtitle)
                 .putExtra(EXTRA_LIVE, match.isLive)

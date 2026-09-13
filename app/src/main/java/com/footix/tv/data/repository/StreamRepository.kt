@@ -12,16 +12,17 @@ class StreamRepository(private val api: FootixApi) {
 
     suspend fun resolve(match: Match): PlayableStream {
         if (!match.hasSources) throw StreamUnavailableException()
+        val stream = resolve(match.slug)
+        return if (stream.channel.isBlank()) stream.copy(channel = match.channel) else stream
+    }
 
-        val stream = api.stream(match.slug)
+    /** Variante pour le lecteur, qui ne transporte que le slug du match. */
+    suspend fun resolve(slug: String): PlayableStream {
+        val stream = api.stream(slug)
         val source = StreamSelector.pick(stream.sources) ?: throw StreamUnavailableException()
         val url = StreamSelector.sanitize(source.url) ?: throw StreamUnavailableException()
-        Logger.d("Flux retenu pour ${match.slug}: $url")
+        Logger.d("Flux retenu pour $slug: $url")
 
-        return PlayableStream(
-            url = url,
-            label = source.label,
-            channel = stream.channel.ifBlank { match.channel }
-        )
+        return PlayableStream(url = url, label = source.label, channel = stream.channel)
     }
 }

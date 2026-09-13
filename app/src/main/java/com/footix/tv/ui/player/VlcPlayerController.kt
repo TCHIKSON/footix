@@ -26,8 +26,20 @@ class VlcPlayerController(context: Context) {
         fun onPlaying()
         fun onPaused()
         fun onRetrying(attempt: Int, maxAttempts: Int)
+        fun onResolvingFreshUrl()
         fun onUnrecoverableError()
     }
+
+    /**
+     * Redemande au serveur l'URL du flux en cours. Le controleur ignore tout du
+     * reseau : c'est l'activite qui fournit cette resolution. Le rappel recoit
+     * null si l'appel echoue.
+     */
+    fun interface UrlResolver {
+        fun resolve(onResult: (String?) -> Unit)
+    }
+
+    var urlResolver: UrlResolver? = null
 
     private val libVlc = LibVLC(context.applicationContext, engineOptions())
     private val player = MediaPlayer(libVlc)
@@ -37,6 +49,7 @@ class VlcPlayerController(context: Context) {
 
     private var currentUrl: String? = null
     private var retryCount = 0
+    private var finalResolveDone = false
 
     // Reference de mesure du retard : horloge murale et position dans le flux au
     // moment ou la lecture a demarre. L'ecart entre les deux est la derive.
@@ -68,7 +81,7 @@ class VlcPlayerController(context: Context) {
 
     fun play(url: String) {
         currentUrl = url
-        retryCount = 0
+        resetRetryState()
         start(url)
     }
 
@@ -76,8 +89,13 @@ class VlcPlayerController(context: Context) {
     fun retry() {
         val url = currentUrl ?: return
         handler.removeCallbacksAndMessages(null)
-        retryCount = 0
+        resetRetryState()
         start(url)
+    }
+
+    private fun resetRetryState() {
+        retryCount = 0
+        finalResolveDone = false
     }
 
     fun togglePlayPause() {
@@ -119,7 +137,7 @@ class VlcPlayerController(context: Context) {
             MediaPlayer.Event.Buffering -> listener?.onBuffering(event.buffering)
 
             MediaPlayer.Event.Playing -> {
-                retryCount = 0
+                resetRetryState()
                 // Une reprise apres pause ne remet pas la reference a zero : le
                 // temps passe en pause fait partie du retard a rattraper.
                 if (awaitingSyncReset) {
@@ -170,13 +188,56 @@ class VlcPlayerController(context: Context) {
 
     private fun scheduleRetry() {
         val url = currentUrl ?: return
+
         if (retryCount >= AppConfig.PLAYER_MAX_RETRIES) {
-            listener?.onUnrecoverableError()
+            // Toutes les tentatives ont echoue : un dernier appel au serveur, au
+            // cas ou l'adresse du flux aurait change, puis on abandonne.
+            if (finalResolveDone) {
+                listener?.onUnrecoverableError()
+                return
+            }
+            finalResolveDone = true
+            handler.postDelayed({ restartWithFreshUrl() }, AppConfig.PLAYER_RETRY_DELAY_MS)
             return
         }
+
         retryCount++
         listener?.onRetrying(retryCount, AppConfig.PLAYER_MAX_RETRIES)
-        handler.postDelayed({ start(url) }, AppConfig.PLAYER_RETRY_DELAY_MS)
+        val relaunch = if (retryCount == AppConfig.PLAYER_REFRESH_URL_AT_ATTEMPT) {
+            Runnable { restartWithFreshUrl() }
+        } else {
+            Runnable { start(url) }
+        }
+        handler.postDelayed(relaunch, AppConfig.PLAYER_RETRY_DELAY_MS)
+    }
+
+    private fun restartWithFreshUrl() {
+        val resolver = urlResolver
+        if (resolver == null) {
+            replayCurrentUrl()
+            return
+        }
+        listener?.onResolvingFreshUrl()
+        resolver.resolve { fresh ->
+            if (fresh == null) {
+                Logger.w("Aucune URL fraiche obtenue")
+                replayCurrentUrl()
+            } else {
+                Logger.d("Nouvelle URL obtenue, relance de la lecture")
+                currentUrl = fresh
+                start(fresh)
+            }
+        }
+    }
+
+    /** Repli quand le serveur n'a pas rendu d'URL utilisable. */
+    private fun replayCurrentUrl() {
+        val url = currentUrl
+        if (url == null || retryCount >= AppConfig.PLAYER_MAX_RETRIES) {
+            listener?.onUnrecoverableError()
+        } else {
+            start(url)
+        }
     }
 
     private fun engineOptions(): ArrayList<String> {

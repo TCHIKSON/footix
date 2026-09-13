@@ -63,7 +63,14 @@ object AppConfig {
     /** Memoire tampon reseau, selon le mode de latence choisi ci-dessus. */
     const val PLAYER_NETWORK_CACHING_MS = 1500
     const val PLAYER_LOW_LATENCY_CACHING_MS = 1000
-    const val PLAYER_MAX_RETRIES = 5
+    const val PLAYER_MAX_RETRIES = 4
+
+    /**
+     * Tentative a partir de laquelle on redemande l'URL au serveur au lieu de
+     * rejouer la meme : le flux d'un match peut changer de machine en cours de
+     * route. Un dernier appel a lieu aussi apres la derniere tentative.
+     */
+    const val PLAYER_REFRESH_URL_AT_ATTEMPT = 3
     const val PLAYER_RETRY_DELAY_MS = 3_000L
     const val PLAYER_SEEK_STEP_MS = 10_000L
     const val PLAYER_OVERLAY_TIMEOUT_MS = 5_000L

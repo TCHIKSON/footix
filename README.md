@@ -37,7 +37,7 @@ Il fonctionne sur toute TV Android, quelle que soit son architecture.
 
 ```powershell
 $adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
-& $adb connect 192.168.1.93:5555
+& $adb connect 192.xxx.x.xx:5555
 & $adb install -r "app\build\outputs\apk\debug\app-universal-debug.apk"
 ```
 
